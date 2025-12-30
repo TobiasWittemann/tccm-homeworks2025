@@ -1,37 +1,78 @@
 program MD
 implicit none
 integer :: Natoms, i, j
-double precision :: dx2, dy2, dz2, m, dist, epsilon, sigma
-double precision, allocatable :: coord(:,:), mass(:)
+double precision :: m, dist, epsilon, sigma, epsilon_ext, sigma_ext
+double precision, allocatable :: coord(:,:), coord_ext(:,:), mass(:)
 double precision, allocatable :: distance(:,:), acceleration(:,:)
+character(len=100) :: file
 
-! Open and read input file
-open(1, file='inp.txt', status="old", action='read')
-read(1,*) Natoms    ! read number of atoms
-read(1,*)           ! read comment line
-write(*,*) "Number of atoms", Natoms
-allocate(coord(Natoms, NAtoms), mass(NAtoms))
-do i=1,Natoms
-  read(1,*) coord(i,1), coord(i,2), coord(i,3), mass(i)    ! read coordinates and mass line by line
-end do
-close(1)
+! Get input filename from command line argument
+call get_command_argument(1, file)
 
-allocate(distance(NAtoms,NAtoms))
-
+! Read the input file and allocate arrays
+call read_NAtoms(file,NAtoms)
+allocate(coord(NAtoms,3), coord_ext(NAtoms,3), mass(NAtoms))
+allocate(distance(NAtoms,NAtoms),acceleration(NAtoms,3))
+call read_molecule(file, NAtoms, epsilon, sigma, coord, coord_ext, mass)
+ 
 ! Compute distances
 call compute_distances(NAtoms, coord, distance)
-do i=1,NAtoms
-  write(*,*) distance(i,:)
-end do
+write(*,*) "distance"
+call write_array(distance, NAtoms, NAtoms)
 
 ! Compute acceleration
-epsilon = 0.997 ! kJ/mol
-sigma = 3.405   ! Angstrom
-allocate(acceleration(NAtoms,NAtoms))
 call compute_acc(Natoms, epsilon, sigma, coord, mass, distance, acceleration)
-write(*,*) acceleration
+write(*,*) "Acceleration"
+call write_array(acceleration, NAtoms, NAtoms)
 end program MD
 
+
+subroutine write_array(arr, m, n)
+integer, intent(in) :: m, n
+double precision, intent(in), dimension(m,n) :: arr
+integer :: i
+do i=1,m
+  write(*,*) arr(i,:)
+end do
+end subroutine write_array
+
+subroutine read_NAtoms(file, NAtoms)
+implicit none
+character(len=100), intent(in) :: file
+integer, intent(out) :: NAtoms
+open(1, file=file, status="old", action='read')
+read(1,*) Natoms 
+close(1)        ! read number of atoms
+end subroutine read_NAtoms
+
+subroutine read_molecule(file, NAtoms, epsilon, sigma, coord, coord_ext, mass)
+implicit none
+character(len=100), intent(in) :: file
+integer, intent(in) :: Natoms
+integer :: i,j, NAtomsDummy
+double precision :: m, dist, epsilon_ext, sigma_ext
+double precision, intent(out) :: epsilon, sigma 
+double precision, intent(out), dimension(NAtoms,3) :: coord, coord_ext
+double precision, intent(out), dimension(NAtoms) :: mass
+! Open and read input file
+open(1, file='inp.txt', status="old", action='read')
+read(1,*) NAtomsDummy         ! read number of atoms
+read(1,*) epsilon_ext, sigma_ext ! read epsilon (kJ/mol) and sigma (A) from comment line
+! Convert epsilon and sigma from externally used units into the units used in the program
+epsilon = epsilon_ext ! 1 kJ/mol = 1 gnm^2/ps^2
+sigma = 0.1*sigma_ext ! 1 A = 0.1 nm
+! Writing to the output file
+write(*,*) "Number of atoms  : ", Natoms
+write(*,*) "Epsilon / kJ/mol : ", epsilon_ext
+write(*,*) "Sigma / A        : ", sigma_ext
+! Allocate Coordinate array
+do i=1,NAtoms
+  write(*,*) "i", i
+  read(1,*) coord_ext(i,1), coord_ext(i,2), coord_ext(i,3), mass(i)    ! read coordinates and mass line by line
+end do
+coord = 0.1*coord_ext ! Convert coordinates from A into pm
+close(1)
+end subroutine read_molecule
 
 subroutine compute_distances(NAtoms, coord, distance)
 integer,intent(in) :: NAtoms
@@ -41,7 +82,6 @@ double precision, intent(in) :: coord(NAtoms,NAtoms)
 double precision, intent(out) :: distance(NAtoms,NAtoms)
 do j=1,NAtoms
   do i=1,j
-    write(*,*) 'i, j', i, j
     dx2 = (coord(i,1)-coord(j,1))**2
     dy2 = (coord(i,2)-coord(j,2))**2
     dz2 = (coord(i,3)-coord(j,3))**2
@@ -61,7 +101,6 @@ double precision, intent(in) :: coord(NAtoms,NAtoms), distance(NAtoms,NAtoms), m
 double precision, intent(out) :: acceleration(NAtoms,3)
 double precision, dimension(3) :: F, r, U_ij
 do i=1,NAtoms
-  write(*,*) 'i', i
   F = 0
   do j=1,NAtoms
     if (i.ne.j) then

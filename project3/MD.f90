@@ -1,9 +1,9 @@
 program MD
 implicit none
-integer :: NAtoms, i, j
-double precision :: m, dist, epsilon, sigma, epsilon_ext, sigma_ext, lj_potential, V
+integer :: NAtoms, i, j, nsteps
+double precision :: m, dist, epsilon, sigma, epsilon_ext, sigma_ext, lj_potential, V, dt
 double precision, allocatable :: coord(:,:), coord_ext(:,:), mass(:)
-double precision, allocatable :: distance(:,:), acceleration(:,:)
+double precision, allocatable :: distance(:,:), acceleration(:,:), velocity(:,:)
 character(len=100) :: file
 
 ! Get input filename from command line argument
@@ -13,6 +13,7 @@ call get_command_argument(1, file)
 call read_NAtoms(file,NAtoms)
 allocate(coord(NAtoms,3), coord_ext(NAtoms,3), mass(NAtoms))
 allocate(distance(NAtoms,NAtoms),acceleration(NAtoms,3))
+allocate(velocity(NAtoms,3))
 call read_molecule(file, NAtoms, epsilon, sigma, coord, coord_ext, mass)
  
 ! Compute distances
@@ -28,6 +29,14 @@ call write_array(acceleration, NAtoms, NAtoms)
 ! Compute Lennard-Jones potential
 lj_potential = V(epsilon, sigma, NAtoms, distance)
 write(*,*) 'Lennard-Jones Potential (kJ/mol): ', lj_potential
+
+! Run MD simulation
+nsteps = 1000 ! number of MD steps
+dt = 0.02d0 ! time step in ps
+velocity = 0.0d0 ! initialize velocities to zero
+call run_md(NAtoms, nsteps, dt, distance, mass, epsilon, sigma, coord, velocity, acceleration)
+write(*,*) 'Final Coordinates after MD (nm):'
+call write_array(coord, NAtoms, 3)
 end program MD
 
 
@@ -142,3 +151,40 @@ double precision function V(epsilon, sigma, NAtoms, distance)
         end do
     end do
 end function V
+
+subroutine run_md(NAtoms, nsteps, dt, distance, mass, epsilon, sigma, coord, velocity, acceleration)
+    implicit none
+    integer, intent(in) :: NAtoms, nsteps
+    double precision, intent(in) :: dt, mass(NAtoms), epsilon, sigma
+    double precision, intent(inout), dimension(NAtoms,3) :: coord, velocity, acceleration
+    double precision, intent(inout) :: distance(NAtoms, NAtoms)
+    integer :: step, i, unit_traj
+    double precision :: lj_potential, V 
+    
+    unit_traj = 20
+    open(unit_traj, file='traj.xyz', status='replace', action='write')
+    
+    call compute_distances(NAtoms, coord, distance)
+    call compute_acc(NAtoms, epsilon, sigma, coord, mass, distance, acceleration)
+    do step = 1, nsteps
+        coord = coord + velocity*dt + 0.5d0*acceleration*dt**2 ! update position r(n+1)
+        call compute_distances(NAtoms, coord, distance) ! update distances r(n+1)
+        velocity = velocity + 0.5d0*acceleration*dt ! update half-step velocity v(n+1/2)
+        call compute_acc(NAtoms, epsilon, sigma, coord, mass, distance, acceleration) ! update acceleration a(n+1)
+        velocity = velocity + 0.5d0*acceleration*dt ! update final step velocity v(n+1)
+    
+        ! Write trajectory every 10 steps
+        if (mod(step, 10) == 0) then
+            lj_potential = V(epsilon, sigma, NAtoms, distance)
+            ! TODO: compute kinetic energy T, total_energy and check energy conservation
+
+            ! Write coordinates to XYZ trajectory file
+            write(unit_traj,*) NAtoms
+            ! TODO: write comment line with energy info
+            do i = 1, NAtoms
+                write(unit_traj,'(A,3F12.6)') 'Ar', coord(i, :) * 10.0d0 ! write coordinates in Angstroms
+            end do
+        end if
+    end do
+    close(unit_traj)
+end subroutine run_md

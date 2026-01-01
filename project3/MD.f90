@@ -74,7 +74,7 @@ do i=1,NAtoms
   write(*,*) "i", i
   read(1,*) coord_ext(i,1), coord_ext(i,2), coord_ext(i,3), mass(i)    ! read coordinates and mass line by line
 end do
-coord = 0.1*coord_ext ! Convert coordinates from A into pm
+coord = 0.1*coord_ext ! Convert coordinates from A into nm
 close(1)
 end subroutine read_molecule
 

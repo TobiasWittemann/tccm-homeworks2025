@@ -1,7 +1,7 @@
 program MD
 implicit none
-integer :: Natoms, i, j
-double precision :: m, dist, epsilon, sigma, epsilon_ext, sigma_ext
+integer :: NAtoms, i, j
+double precision :: m, dist, epsilon, sigma, epsilon_ext, sigma_ext, lj_potential, V
 double precision, allocatable :: coord(:,:), coord_ext(:,:), mass(:)
 double precision, allocatable :: distance(:,:), acceleration(:,:)
 character(len=100) :: file
@@ -21,9 +21,13 @@ write(*,*) "distance"
 call write_array(distance, NAtoms, NAtoms)
 
 ! Compute acceleration
-call compute_acc(Natoms, epsilon, sigma, coord, mass, distance, acceleration)
+call compute_acc(NAtoms, epsilon, sigma, coord, mass, distance, acceleration)
 write(*,*) "Acceleration"
 call write_array(acceleration, NAtoms, NAtoms)
+
+! Compute Lennard-Jones potential
+lj_potential = V(epsilon, sigma, NAtoms, distance)
+write(*,*) 'Lennard-Jones Potential (kJ/mol): ', lj_potential
 end program MD
 
 
@@ -41,14 +45,14 @@ implicit none
 character(len=100), intent(in) :: file
 integer, intent(out) :: NAtoms
 open(1, file=file, status="old", action='read')
-read(1,*) Natoms 
+read(1,*) NAtoms 
 close(1)        ! read number of atoms
 end subroutine read_NAtoms
 
 subroutine read_molecule(file, NAtoms, epsilon, sigma, coord, coord_ext, mass)
 implicit none
 character(len=100), intent(in) :: file
-integer, intent(in) :: Natoms
+integer, intent(in) :: NAtoms
 integer :: i,j, NAtomsDummy
 double precision :: m, dist, epsilon_ext, sigma_ext
 double precision, intent(out) :: epsilon, sigma 
@@ -62,7 +66,7 @@ read(1,*) epsilon_ext, sigma_ext ! read epsilon (kJ/mol) and sigma (A) from comm
 epsilon = epsilon_ext ! 1 kJ/mol = 1 gnm^2/ps^2
 sigma = 0.1*sigma_ext ! 1 A = 0.1 nm
 ! Writing to the output file
-write(*,*) "Number of atoms  : ", Natoms
+write(*,*) "Number of atoms  : ", NAtoms
 write(*,*) "Epsilon / kJ/mol : ", epsilon_ext
 write(*,*) "Sigma / A        : ", sigma_ext
 ! Allocate Coordinate array
@@ -70,7 +74,7 @@ do i=1,NAtoms
   write(*,*) "i", i
   read(1,*) coord_ext(i,1), coord_ext(i,2), coord_ext(i,3), mass(i)    ! read coordinates and mass line by line
 end do
-coord = 0.1*coord_ext ! Convert coordinates from A into pm
+coord = 0.1*coord_ext ! Convert coordinates from A into nm
 close(1)
 end subroutine read_molecule
 
@@ -93,7 +97,7 @@ end do
 end subroutine compute_distances
 
 
-subroutine compute_acc(Natoms, epsilon, sigma, coord, mass, distance, acceleration)
+subroutine compute_acc(NAtoms, epsilon, sigma, coord, mass, distance, acceleration)
 implicit none
 integer,intent(in) :: NAtoms
 integer :: i, j
@@ -112,3 +116,29 @@ do i=1,NAtoms
   acceleration(i,:) = -F/mass(i)
 end do
 end subroutine compute_acc
+
+double precision function V(epsilon, sigma, NAtoms, distance)
+    implicit none
+    double precision, intent(in) :: epsilon, sigma
+    integer, intent(in) :: NAtoms
+    double precision, intent(in) :: distance(NAtoms, NAtoms)
+
+    integer :: i, j
+    double precision :: r, sr6, sr12, pair_potential
+    V = 0.0d0
+
+    ! sum over i and j>i to avoid double counting
+    do j = 2, NAtoms
+        do i = 1, j-1 ! Fortran is column major, i loop inside
+            r = distance(i, j)
+
+            ! V_ij = 4*epsilon*((sigma/r)^12 - (sigma/r)^6)
+            if (r > 0.0d0) then
+                sr6 = (sigma / r)**6
+                sr12 = sr6 * sr6
+                pair_potential = 4.0d0 * epsilon * (sr12 - sr6)
+                V = V + pair_potential
+            end if
+        end do
+    end do
+end function V

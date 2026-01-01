@@ -23,7 +23,7 @@ call write_array(distance, NAtoms, NAtoms)
 ! Compute acceleration
 call compute_acc(Natoms, epsilon, sigma, coord, mass, distance, acceleration)
 write(*,*) "Acceleration"
-call write_array(acceleration, NAtoms, NAtoms)
+call write_array(acceleration, NAtoms,3)
 end program MD
 
 
@@ -78,7 +78,7 @@ subroutine compute_distances(NAtoms, coord, distance)
 integer,intent(in) :: NAtoms
 integer :: i,j
 double precision :: dx2, dy2, dz2, m, dist
-double precision, intent(in) :: coord(NAtoms,NAtoms)
+double precision, intent(in) :: coord(NAtoms,3)
 double precision, intent(out) :: distance(NAtoms,NAtoms)
 do j=1,NAtoms
   do i=1,j
@@ -97,7 +97,7 @@ subroutine compute_acc(Natoms, epsilon, sigma, coord, mass, distance, accelerati
 implicit none
 integer,intent(in) :: NAtoms
 integer :: i, j
-double precision, intent(in) :: coord(NAtoms,NAtoms), distance(NAtoms,NAtoms), mass(NAtoms), epsilon, sigma
+double precision, intent(in) :: coord(NAtoms,3), distance(NAtoms,NAtoms), mass(NAtoms), epsilon, sigma
 double precision, intent(out) :: acceleration(NAtoms,3)
 double precision, dimension(3) :: F, r, U_ij
 do i=1,NAtoms
@@ -105,7 +105,7 @@ do i=1,NAtoms
   do j=1,NAtoms
     if (i.ne.j) then
       r = distance(i,j)
-      U_ij = 4*epsilon*((sigma/r)**12 - (sigma/r)**6)
+      U_ij = 24*epsilon/r*((sigma/r)**6 - 2*(sigma/r)**12)
       F = F + U_ij*(coord(i,:)-coord(j,:))/r
     end if
   end do

@@ -48,6 +48,7 @@ do i=1,m
 end do
 end subroutine read_array
 
+
 ! This subroutine calculates the MacMurchie-Davidson coefficients E_ti. The coefficients are calculated up to i = i_max and j = j_max
 subroutine calc_E_tij(i_max, j_max, p, mu, xAB, xPA, xPB, E_tij)
 implicit none
@@ -104,6 +105,7 @@ else if ((n<0).and.(mod(n,2)==-1)) then
 end if
 end function double_factorial
 
+! This subroutine calculates the overlap matrix for a provided molecular geometry and a given basis set
 subroutine calc_S(Nbasis, maxcont, basis_centers, primitive_exponents, cartesian_exponents, contraction_coeffs,S)
 implicit none
 integer, intent(in) :: Nbasis, maxcont

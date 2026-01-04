@@ -7,7 +7,7 @@ double precision, allocatable :: distance(:,:), acceleration(:,:), velocity(:,:)
 character(len=100) :: file
 
 ! Get input filename from command line argument
-call get_command_argument(1, file)
+call get_user_input(file, nsteps, dt)
 
 ! Read the input file and allocate arrays
 call read_NAtoms(file,NAtoms)
@@ -31,12 +31,11 @@ lj_potential = V(epsilon, sigma, NAtoms, distance)
 write(*,*) 'Lennard-Jones Potential (kJ/mol): ', lj_potential
 
 ! Run MD simulation
-nsteps = 1000 ! number of MD steps
-dt = 0.02d0 ! time step in ps
 velocity = 0.0d0 ! initialize velocities to zero
 call run_md(NAtoms, nsteps, dt, distance, mass, epsilon, sigma, coord, velocity, acceleration)
-write(*,*) 'Final Coordinates after MD (nm):'
-call write_array(coord, NAtoms, 3)
+write(*,*) 'Simulation completed.'
+write(*,*) 'Final Coordinates after MD (A):'
+call write_array(coord * 10.0d0, NAtoms, 3)
 end program MD
 
 
@@ -188,3 +187,66 @@ subroutine run_md(NAtoms, nsteps, dt, distance, mass, epsilon, sigma, coord, vel
     end do
     close(unit_traj)
 end subroutine run_md
+
+subroutine get_user_input(file_name, nsteps, dt)
+    implicit none
+    character(len=100), intent(out) :: file_name
+    integer, intent(out) :: nsteps
+    double precision, intent(out) :: dt
+    
+    character(len=100) :: input_str
+    integer :: io_status
+
+    print *, "=========================================="
+    print *, "      Molecular Dynamics Configuration      "
+    print *, "=========================================="
+
+    ! get input filename
+    do
+        write(*, '(A)') '>> Input filename (default "inp.txt"): '
+        read(*, '(A)') input_str
+        if (len_trim(input_str) == 0) then
+            file_name = 'inp.txt'
+        else
+            file_name = trim(input_str)
+        end if
+        
+        open(unit=10, file=trim(file_name), status='old', iostat=io_status)
+        if (io_status == 0) then
+            close(10)    ! check if file exists
+            exit
+        else
+            write(*,*) 'Error: File not found. Please try again.'
+        end if
+    end do
+
+    ! get number of steps
+    do
+        write(*, '(A)') '>> Number of steps (default 1000): '
+        read(*, '(A)') input_str
+        if (len_trim(input_str) == 0) then
+            nsteps = 1000
+            exit
+        else
+            read(input_str, *, iostat=io_status) nsteps
+            if (io_status == 0 .and. nsteps > 0) exit
+            write(*,*) 'Invalid input. Enter a positive integer.'
+        end if
+    end do
+
+    ! get time step
+    do
+        write(*, '(A)') '>> Time step dt in ps (default 0.02): '
+        read(*, '(A)') input_str
+        if (len_trim(input_str) == 0) then
+            dt = 0.02d0
+            exit
+        else
+            read(input_str, *, iostat=io_status) dt
+            if (io_status == 0 .and. dt > 0.0d0) exit
+            write(*,*) 'Invalid input. Enter a positive number.'
+        end if
+    end do
+    
+    print *, "------------------------------------------"
+end subroutine get_user_input

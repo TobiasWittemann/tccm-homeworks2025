@@ -211,52 +211,62 @@ contains
 
     ! Flatten nested basis set into MD matrices
     subroutine GenerateMDMatrices(basis, atom_pos, n_basis, max_prim, &
-                                  basis_centers, primitive_exponents, &
-                                  cartesian_exponents, contraction_coeffs)
-        type(AtomicBasis), intent(in) :: basis 
-        real(8), intent(in)           :: atom_pos(3)
-        integer, intent(in)           :: n_basis, max_prim
+                                 offset, basis_centers, primitive_exponents, &
+                                 cartesian_exponents, contraction_coeffs)
+        ! --- Input Parameters ---
+        type(AtomicBasis), intent(in) :: basis           ! Basis set info for a specific atom
+        real(8), intent(in)           :: atom_pos(3)     ! Coordinates of the atom [x, y, z]
+        integer, intent(in)           :: n_basis         ! Total number of global basis functions
+        integer, intent(in)           :: max_prim        ! Maximum global degree of contraction
+        integer, intent(inout)        :: offset          ! Current starting row index for matrix filling
         
-        real(8), intent(out) :: basis_centers(n_basis, 3) 
-        real(8), intent(out) :: primitive_exponents(n_basis, max_prim)
-        real(8), intent(out) :: cartesian_exponents(n_basis, 3)
-        real(8), intent(out) :: contraction_coeffs(n_basis, max_prim)
+        ! --- Output Matrices ---
+        double precision, intent(inout) :: basis_centers(n_basis, 3)
+        double precision, intent(inout) :: primitive_exponents(n_basis, max_prim)
+        double precision, intent(inout) :: cartesian_exponents(n_basis, 3)
+        double precision, intent(inout) :: contraction_coeffs(n_basis, max_prim)
 
+        ! --- Internal Variables ---
         integer :: s, a, p, L_val, i, j, k, b_idx
-        real(8) :: c_norm, p_norm, alpha
+        double precision :: c_norm, p_norm
+        
+        b_idx = offset ! Start counting from the current offset
 
-        ! Initialize matrices
-        basis_centers = 0.0d0
-        primitive_exponents = 0.0d0
-        cartesian_exponents = 0.0d0
-        contraction_coeffs = 0.0d0
-
-        b_idx = 0 
         do s = 1, size(basis%shells)
             L_val = basis%shells(s)%L
             do a = 1, basis%shells(s)%n_ao
+                ! Get normalization constant for this contracted orbital (pre-calculated)
                 c_norm = get_contracted_norm(basis%shells(s), a, L_val)
                 
-                ! Expand into Cartesian components
+                ! --- Core: Expand Cartesian components based on L ---
                 do i = L_val, 0, -1
                 do j = L_val - i, 0, -1
                     k = L_val - i - j
-                    b_idx = b_idx + 1
                     
+                    b_idx = b_idx + 1  ! Move to the next row of the matrix
+                    
+                    ! 1. Fill center coordinates
                     basis_centers(b_idx, :) = atom_pos
+                    
+                    ! 2. Fill Cartesian exponents (l, m, n)
                     cartesian_exponents(b_idx, :) = [real(i,8), real(j,8), real(k,8)]
                     
+                    ! 3. Fill primitive Gaussian exponents and contraction coefficients
                     do p = 1, basis%shells(s)%n_prim
-                        alpha = basis%shells(s)%prims(p)%alpha
-                        p_norm = calc_prim_norm(alpha, L_val)
-                        primitive_exponents(b_idx, p) = alpha
-                        ! Total normalized coefficient: d * N_prim * N_cont
+                        primitive_exponents(b_idx, p) = basis%shells(s)%prims(p)%alpha
+                        
+                        ! Calculate primitive Gaussian normalization constant
+                        p_norm = calc_prim_norm(primitive_exponents(b_idx, p), L_val)
+                        
+                        ! Final coefficient = File coefficient * Primitive Norm * Contracted Norm
                         contraction_coeffs(b_idx, p) = basis%shells(s)%prims(p)%d(a) * p_norm * c_norm
                     end do
                 end do
                 end do
             end do
         end do
+        
+        offset = b_idx ! Update offset for use by the next atom
     end subroutine GenerateMDMatrices
 
     ! Calculate total Cartesian basis function count (Nbasis)
@@ -288,48 +298,3 @@ contains
     end function GetMaxCont
 
 end module BasisSet_Module
-
-! --- Main program for testing and data preparation ---
-! program BasisSet_Main
-!     use BasisSet_Module
-!     implicit none
-
-!     integer :: unit_nb, target_Z
-!     type(AtomicBasis) :: basis
-!     double precision, allocatable, dimension(:,:) :: basis_centers, primitive_exponents, &
-!                                                      cartesian_exponents, contraction_coeffs
-!     integer :: Nbasis, maxcont
-!     double precision :: atom_pos_A(3)
-
-!     ! Parse Carbon (Z=6) 
-!     ! expected output: Nbasis = 9, maxcount = 10 
-!     target_Z = 6
-!     open(unit=10, file='6-31g.1.dalton', status='old', action='read')
-!     unit_nb = 10
-!     call ParseElement(unit_nb, target_Z, basis)
-!     close(unit_nb)
-
-!     call PrintSphericalBasis(basis)
-
-!     ! Determine dimensions and allocate
-!     Nbasis  = GetNBasis(basis)
-!     maxcont = GetMaxCont(basis)
-    
-!     print *, 'Nbasis  = ', Nbasis
-!     print *, 'maxcont = ', maxcont
-    
-!     atom_pos_A = [0.0d0, 0.0d0, 0.0d0] 
-    
-!     allocate(basis_centers(Nbasis, 3))
-!     allocate(primitive_exponents(Nbasis, maxcont))
-!     allocate(cartesian_exponents(Nbasis, 3))
-!     allocate(contraction_coeffs(Nbasis, maxcont))
-    
-!     ! Populate MD matrices
-!     call GenerateMDMatrices(basis, atom_pos_A, Nbasis, maxcont, &
-!                             basis_centers, primitive_exponents, &
-!                             cartesian_exponents, contraction_coeffs)
-
-!     print *, "MD Matrices successfully generated."
-
-! end program BasisSet_Main

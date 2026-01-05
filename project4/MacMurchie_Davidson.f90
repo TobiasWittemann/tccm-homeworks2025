@@ -1,4 +1,5 @@
 program MacMurchieDavidson
+    use BasisSet_Module
 implicit none
 integer :: Nbasis, MaxCont, i, j, t, t_max, k, l, i_max, j_max, d, m, n
 double precision, allocatable, dimension(:,:) :: basis_centers, primitive_exponents, cartesian_exponents, contraction_coeffs
@@ -8,10 +9,29 @@ double precision :: p, a, b, mu, xAB, xPA, xPB, Nn, Nm, double_factorial, S_ij, 
 double precision,dimension(:,:), allocatable :: S
 double precision, parameter :: pi = acos(-1.0d0)
 
+    type(AtomicBasis) :: basis_A, basis_B
+    integer :: unit_idx, n_A, n_B
+    real(8) :: pos_A(3), pos_B(3)
+
+    pos_A = [0.0d0, 0.0d0, 0.0d0]
+    pos_B = [0.0d0, 0.0d0, 2.132d0]
+
+    open(newunit=unit_idx, file='6-31g.1.dalton', status='old')
+    call ParseElement(unit_idx, 6, basis_A) ! read basis for Carbon (Z=6)
+    call ParseElement(unit_idx, 6, basis_B) ! read basis for Carbon (Z=6)
+    close(unit_idx)
+
+    n_A = GetNBasis(basis_A)
+    n_B = GetNBasis(basis_B)
+    Nbasis = n_A + n_B
+    maxcont = max(GetMaxCont(basis_A), GetMaxCont(basis_B))
+    print *, "Nbasis =", Nbasis, " maxcont =", maxcont
+    
 ! Read basis set data from provided files
 Nbasis = 10   ! Number of basis functions
 maxcont = 3   ! maximum degree of contraction (maxcont = 3 --> there are at most 3 primitive gaussians in one contracted basis function)
-allocate(basis_centers(Nbasis,3), primitive_exponents(Nbasis, maxcont), cartesian_exponents(Nbasis,maxcont), contraction_coeffs(Nbasis,maxcont))
+allocate(basis_centers(Nbasis,3), primitive_exponents(Nbasis, maxcont),&
+ cartesian_exponents(Nbasis,maxcont), contraction_coeffs(Nbasis,maxcont))
 call read_array('basis_centers_sto3g.txt', Nbasis, 3, basis_centers)                        ! basis_centers contains the coordinates at which the basis functions are centered
 call read_array('primitive_exponents_sto3g.txt', Nbasis, maxcont, primitive_exponents)      ! primitive_exponents contains the exponents of the primitive basis functions
 call read_array('cartesian_exponents_sto3g.txt', Nbasis, 3, cartesian_exponents)            ! cartesian_exponents contains the exponents l,m,n (x^l*y^m*z^n*exp(-a*r^2)) indicating the angular momentum

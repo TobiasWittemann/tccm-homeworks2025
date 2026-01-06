@@ -1,11 +1,9 @@
 program main
 implicit none
-integer :: l, m, t, u, v_count, factorial, delta,nCk, x_exp, y_exp, z_exp, i, j
+integer :: l, m, x_exp, y_exp, z_exp, i, j
 integer, dimension(:,:), allocatable :: index_list
-double precision :: vm, v, C
-double precision :: Nlm
 double precision, dimension(:,:), allocatable :: M_trans
-logical :: found
+double precision :: a, S_self, S_self_cart
 integer,dimension(3) :: exponents
 character(len=1) :: x_exp_char, y_exp_char, z_exp_char
 
@@ -19,9 +17,14 @@ allocate(index_list((l+1)*(l+2)/2,3))
 index_list = 0
 allocate(M_trans((l+1)*(l+2)/2,-l:+l))
 M_trans = 0.0d0
-call get_index_list(l,index_list)
-call calc_M_trans(l,index_list,M_trans) 
 
+! Use hard-coded matrix from table provided in the exercise if l < 3
+if (l < 3) then
+  call calc_M_trans_hardcoded(l,M_trans)
+! calculate transformation matrix if l > 2
+else
+  call calc_M_trans(l,M_trans) 
+end if
 
 ! Print calculated transformation matrix in terminal
 write(*,'(A,I3)') "Transformation matrix for l = ", l
@@ -42,6 +45,34 @@ do i=1,(l+1)*(l+2)/2
 write(*,*)
 end do
 
+write(*,*) "Multiplication of the transformation matrix with itself"
+
+
+
+call get_index_list(l,index_list)
+a = 0.5
+! Iterate over m = -l,...,+l
+do m = -l,l
+S_self = 0.0d0
+!write(*,*) "m", m
+  ! Iterate over cartesian functions i and j
+  do i = 1,(l+1)*(l+2)/2
+    do j = 1,(l+1)*(l+2)/2
+      ! The exponents of the cartesians 
+      x_exp = index_list(i,1) + index_list(j,1)
+      y_exp = index_list(i,2) + index_list(j,2)
+      z_exp = index_list(i,3) + index_list(j,3)
+      !write(*,*) "exponents", x_exp, y_exp, z_exp
+      if (mod(x_exp,2)==0.and.mod(y_exp,2)==0.and.mod(z_exp,2)==0) then
+        !write(*,*) "Non-vanishing contribution to integral"
+        call calc_S_self_cart(x_exp/2,y_exp/2,z_exp/2,a,S_self_cart)
+        S_self = S_self + M_trans(i,m)*M_trans(j,m)*S_self_cart
+        !write(*,*) "S_self", S_self
+      end if
+    end do
+  end do
+write(*,*) "Self overlap for m = ", m, ": ", S_self
+end do
 
 end program main
 
@@ -64,6 +95,36 @@ do i = 1,n
   res = res*i
 end do
 end function factorial
+
+! This function calculates the double factorial of a given double-precision real
+function double_factorial(n_in) result(res_out)
+implicit none
+double precision, intent(in) :: n_in
+integer :: res, i, n
+double precision :: res_out
+n = int(n_in)
+if (n==0) then
+  res = 1
+else if ((n>0).and.(mod(n,2)==0)) then
+  res = 1
+  do i=2,n,+2
+   res = res*i
+  end do
+  res_out = real(res, kind=8)
+else if ((n>0).and.(mod(n,2)==1)) then
+  res = 1
+  do i=1,n,2
+   res = res*i
+  end do
+  res_out = real(res, kind=8)
+else if ((n<0).and.(mod(n,2)==-1)) then
+  res = 1
+  do i=n+2,1,2
+   res = res*i
+  end do
+   res_out = 1/real(res, kind=8)
+end if
+end function double_factorial
 
 function delta(a,b) result(res)
 implicit none
@@ -185,14 +246,15 @@ do i=1,(l+1)*(l+2)/2
 end do
 end subroutine get_index
 
-subroutine calc_M_trans(l,index_list,M_trans)
+subroutine calc_M_trans(l,M_trans)
 implicit none
 integer, intent(in) :: l
-integer, dimension((l+1)*(l+2)/2,3),intent(in) :: index_list
+integer, dimension((l+1)*(l+2)/2,3) :: index_list
 double precision, dimension((l+1)*(l+2)/2,-l:+l), intent(out) :: M_trans
 integer :: factorial, nCk, delta, m, t, u, v_count, x_exp, y_exp, z_exp, i
 double precision :: vm, v, C, Nlm
 integer, dimension(3) :: exponents
+call get_index_list(l,index_list)
 do m = -l,l
   Nlm = 1/(2.0d0**abs(m)*factorial(l))*SQRT(real(2*factorial(l+abs(m))*factorial(l-abs(m))/(2**delta(0,m)),kind=8))
   if (m.ge.0) then
@@ -215,7 +277,50 @@ do m = -l,l
     end do
   end do
 end do
-
-
 end subroutine calc_M_trans
+
+subroutine calc_M_trans_hardcoded(l,M_trans)
+integer, intent(in) :: l
+double precision, dimension((l+1)*(l+2)/2,-l:+l), intent(out) :: M_trans
+if (l==0) then
+  M_trans(1,0) = 1.0d0
+else if (l==1) then
+  M_trans = 0.0d0
+  M_trans(1,-1) = 1.0d0
+  M_trans(2,0) = 1.0d0
+  M_trans(3,1) = 1.0d0
+else if (l==2) then
+ M_trans = 0.0d0
+ ! m = 2
+ M_trans(1,2) = SQRT(3.0d0)/2
+ M_trans(2,2) = -SQRT(3.0d0)/2
+ ! m = 1
+ M_trans(5,1) = SQRT(3.0d0)
+ ! m = 0
+ M_trans(1,0) = -0.5
+ M_trans(2,0) = -0.5
+ M_trans(3,0) = 1
+ ! m = -1
+ M_trans(6,-1) = SQRT(3.0d0)
+ ! m = -2
+ M_trans(4,-2) = SQRT(3.0d0)
+end if
+end subroutine calc_M_trans_hardcoded
+
+subroutine calc_S_self_cart(i,j,k,a,S)
+implicit none
+integer, intent(in) :: i,j,k
+double precision, intent(in) :: a
+double precision, intent(out) :: S
+double precision, parameter :: pi=acos(-1.d0)
+double precision :: double_factorial
+
+S = double_factorial(2*real(i,8)-1)*double_factorial(2*real(j,8)-1)*double_factorial(2*real(k,8)-1)/((4*a)**(i+j+k))*(pi/(2*a))**(3/2)
+
+end subroutine calc_S_self_cart
+
+
+
+
+
 

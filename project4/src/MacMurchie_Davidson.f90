@@ -170,11 +170,11 @@ do i=1,j
   ! Iterate over primitive Gaussians n in basis function j and m in basis function i
   do n=1,maxcont
     dn = contraction_coeffs(j,n)
-    if (dn == 0.0d0) exit         ! break from loop if contraction coefficient is zero (= all contributing primitives are through)
+    !if (dn == 0.0d0) exit         ! break from loop if contraction coefficient is zero (= all contributing primitives are through)
     b = primitive_exponents(j,n)
   do m=1,maxcont
     dm = contraction_coeffs(i,m)
-    if (dm == 0.0d0) exit         ! break from loop if contraction coefficient is zero (= all contributing primitives are through)
+    !if (dm == 0.0d0) exit         ! break from loop if contraction coefficient is zero (= all contributing primitives are through)
     a = primitive_exponents(i,m)
     p = a + b
     mu = a*b/p

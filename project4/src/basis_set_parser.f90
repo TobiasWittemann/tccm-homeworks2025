@@ -1,3 +1,11 @@
+! Please check:
+! 1) I think the matrices contraction_coeffs and primitive_exponents that the program creates are not correct.
+!    I printed these matrices and apparently they have maxcont = 10 columns for the C–C molecule although they should only have 6 for 6-31G.
+!    Therefore, I uploaded primitive_exponents.txt and contraction_coeffs.txt which contain the correct matrices for 6-31G with CO as molecule.
+!
+! 2) I think your code normalizes the contraction coefficients in the matrix contraction_coeffs --> Since my code does this normalization as well,
+!    there are normalized twice which is one time too much
+
 module BasisSet_Module
     implicit none
     private

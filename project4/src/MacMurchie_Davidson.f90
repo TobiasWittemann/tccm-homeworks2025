@@ -18,7 +18,7 @@ double precision, parameter :: pi = acos(-1.0d0)
 
     open(newunit=unit_idx, file='6-31g.1.dalton', status='old')
     call ParseElement(unit_idx, 6, basis_A) ! read basis for Carbon (Z=6)
-    call ParseElement(unit_idx, 6, basis_B) ! read basis for Carbon (Z=6)
+    call ParseElement(unit_idx, 8, basis_B) ! read basis for Carbon (Z=6)
     close(unit_idx)
 
     n_A = GetNBasis(basis_A)

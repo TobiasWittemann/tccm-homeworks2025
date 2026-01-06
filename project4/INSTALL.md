@@ -15,6 +15,6 @@ gfortran tests/test_matrix_generation.f90 build/basis_set_parser.o -I build/ -o 
 ### Compilation
 ```bash
 gfortran -c src/basis_set_parser.f90 -J build/ -o build/basis_set_parser.o
-gfortran src/MacMurchie_Davidson.f90 build/basis_set_parser.o -I build/ -o build/run
+gfortran src/MacMurchie_Davidson.f90 build/basis_set_parser.o -I build/ -o run
 ./run
 ```

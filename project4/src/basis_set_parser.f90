@@ -1,11 +1,3 @@
-! Please check:
-! 1) I think the matrices contraction_coeffs and primitive_exponents that the program creates are not correct.
-!    I printed these matrices and apparently they have maxcont = 10 columns for the C–C molecule although they should only have 6 for 6-31G.
-!    Therefore, I uploaded primitive_exponents.txt and contraction_coeffs.txt which contain the correct matrices for 6-31G with CO as molecule.
-!
-! 2) I think your code normalizes the contraction coefficients in the matrix contraction_coeffs --> Since my code does this normalization as well,
-!    there are normalized twice which is one time too much
-
 module BasisSet_Module
     implicit none
     private
@@ -117,7 +109,13 @@ contains
         n_shells = 0
         do 
             read(unit_nb, '(A)', iostat=ios) line
-            if (ios < 0 .or. line(1:1) == 'a' .or. line(1:1) == 'A') exit
+            if (ios < 0) exit
+
+            if ((line(1:1) == 'a' .or. line(1:1) == 'A') .and. &
+                len_trim(line) > 1) then
+                exit 
+            end if
+
             if (len_trim(line) > 0 .and. line(1:1) /= '!' .and. line(1:1) /= ' ') then
                 n_shells = n_shells + 1 
                 read(line, *) sym, n_prim, n_ao
@@ -141,7 +139,12 @@ contains
         s_idx = 0
         
         do while (s_idx < n_shells)
-            read(unit_nb, '(A)') line
+        read(unit_nb, '(A)', iostat=ios) line
+        if (ios /= 0) exit
+
+        if ((line(1:1) == 'a' .or. line(1:1) == 'A') .and. len_trim(line) > 1) then
+             exit 
+        end if
             
             ! Check comment lines for L-type keywords
             if (line(1:1) == '!') then
@@ -221,60 +224,59 @@ contains
     subroutine GenerateMDMatrices(basis, atom_pos, n_basis, max_prim, &
                                  offset, basis_centers, primitive_exponents, &
                                  cartesian_exponents, contraction_coeffs)
-        ! --- Input Parameters ---
-        type(AtomicBasis), intent(in) :: basis           ! Basis set info for a specific atom
-        real(8), intent(in)           :: atom_pos(3)     ! Coordinates of the atom [x, y, z]
-        integer, intent(in)           :: n_basis         ! Total number of global basis functions
-        integer, intent(in)           :: max_prim        ! Maximum global degree of contraction
-        integer, intent(inout)        :: offset          ! Current starting row index for matrix filling
+        type(AtomicBasis), intent(in) :: basis
+        real(8), intent(in)           :: atom_pos(3)
+        integer, intent(in)           :: n_basis
+        integer, intent(in)           :: max_prim
+        integer, intent(inout)        :: offset
         
-        ! --- Output Matrices ---
         double precision, intent(inout) :: basis_centers(n_basis, 3)
         double precision, intent(inout) :: primitive_exponents(n_basis, max_prim)
         double precision, intent(inout) :: cartesian_exponents(n_basis, 3)
         double precision, intent(inout) :: contraction_coeffs(n_basis, max_prim)
 
-        ! --- Internal Variables ---
-        integer :: s, a, p, L_val, i, j, k, b_idx
-        double precision :: c_norm, p_norm
+        integer :: s, a, p, L_val, b_idx, m_count, n_prim_in_shell
         
-        b_idx = offset ! Start counting from the current offset
+        b_idx = offset 
 
         do s = 1, size(basis%shells)
             L_val = basis%shells(s)%L
+            n_prim_in_shell = basis%shells(s)%n_prim 
+            
+            ! Loop over each Shell
             do a = 1, basis%shells(s)%n_ao
-                ! Get normalization constant for this contracted orbital (pre-calculated)
-                c_norm = get_contracted_norm(basis%shells(s), a, L_val)
                 
-                ! --- Core: Expand Cartesian components based on L ---
-                do i = L_val, 0, -1
-                do j = L_val - i, 0, -1
-                    k = L_val - i - j
+                ! Loop over each spherical harmonic component of the contracted orbital (2L + 1)
+                ! S orbitals loop 1 time; P orbitals loop 3 times
+                do m_count = 1, (2 * L_val + 1)
                     
-                    b_idx = b_idx + 1  ! Move to the next row of the matrix
+                    b_idx = b_idx + 1
                     
-                    ! 1. Fill center coordinates
+                    ! atom coordinates for the current basis function
                     basis_centers(b_idx, :) = atom_pos
                     
-                    ! 2. Fill Cartesian exponents (l, m, n)
-                    cartesian_exponents(b_idx, :) = [real(i,8), real(j,8), real(k,8)]
-                    
-                    ! 3. Fill primitive Gaussian exponents and contraction coefficients
-                    do p = 1, basis%shells(s)%n_prim
+                    ! Cartesian exponents (l, m, n)
+                    ! for s and p only
+                    if (L_val == 0) then
+                        cartesian_exponents(b_idx, :) = [0.0d0, 0.0d0, 0.0d0]
+                    else if (L_val == 1) then
+                        if (m_count == 1) cartesian_exponents(b_idx, :) = [1.0d0, 0.0d0, 0.0d0] ! px
+                        if (m_count == 2) cartesian_exponents(b_idx, :) = [0.0d0, 1.0d0, 0.0d0] ! py
+                        if (m_count == 3) cartesian_exponents(b_idx, :) = [0.0d0, 0.0d0, 1.0d0] ! pz
+                    end if
+
+                    ! Populate primitive exponents and contraction coefficients
+                    do p = 1, n_prim_in_shell
                         primitive_exponents(b_idx, p) = basis%shells(s)%prims(p)%alpha
                         
-                        ! Calculate primitive Gaussian normalization constant
-                        p_norm = calc_prim_norm(primitive_exponents(b_idx, p), L_val)
-                        
-                        ! Final coefficient = File coefficient * Primitive Norm * Contracted Norm
-                        contraction_coeffs(b_idx, p) = basis%shells(s)%prims(p)%d(a) * p_norm * c_norm
+                        contraction_coeffs(b_idx, p) = basis%shells(s)%prims(p)%d(a)
                     end do
-                end do
+                    
                 end do
             end do
         end do
         
-        offset = b_idx ! Update offset for use by the next atom
+        offset = b_idx 
     end subroutine GenerateMDMatrices
 
     ! Calculate total Cartesian basis function count (Nbasis)
@@ -293,14 +295,16 @@ contains
     end function GetNBasis
 
     ! Calculate maximum contractions (maxcont)
-    function GetMaxCont(basis) result(m_cont)
+    function GetMaxCont(basis) result(maxcont)
         type(AtomicBasis), intent(in) :: basis
-        integer :: m_cont, s
+        integer :: maxcont, s
         
-        m_cont = 0
+        maxcont = 0
         do s = 1, size(basis%shells)
-            if (basis%shells(s)%n_prim > m_cont) then
-                m_cont = basis%shells(s)%n_prim
+            ! debug
+            ! print *, "Shell index:", s, " L=", basis%shells(s)%L, " n_prim=", basis%shells(s)%n_prim
+            if (basis%shells(s)%n_prim > maxcont) then
+                maxcont = basis%shells(s)%n_prim
             end if
         end do
     end function GetMaxCont

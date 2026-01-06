@@ -10,7 +10,7 @@ double precision,dimension(:,:), allocatable :: S
 double precision, parameter :: pi = acos(-1.0d0)
 
     type(AtomicBasis) :: basis_A, basis_B
-    integer :: unit_idx, n_A, n_B
+    integer :: unit_idx, n_A, n_B, offset
     real(8) :: pos_A(3), pos_B(3)
 
     pos_A = [0.0d0, 0.0d0, 0.0d0]
@@ -24,18 +24,28 @@ double precision, parameter :: pi = acos(-1.0d0)
     n_A = GetNBasis(basis_A)
     n_B = GetNBasis(basis_B)
     Nbasis = n_A + n_B
-    maxcont = max(GetMaxCont(basis_A), GetMaxCont(basis_B))
-    print *, "Nbasis =", Nbasis, " maxcont =", maxcont
+    MaxCont = max(GetMaxCont(basis_A), GetMaxCont(basis_B))
+    print *, "Nbasis =", Nbasis, " maxcont =", MaxCont
     
-! Read basis set data from provided files
-Nbasis = 10   ! Number of basis functions
-maxcont = 3   ! maximum degree of contraction (maxcont = 3 --> there are at most 3 primitive gaussians in one contracted basis function)
-allocate(basis_centers(Nbasis,3), primitive_exponents(Nbasis, maxcont),&
- cartesian_exponents(Nbasis,maxcont), contraction_coeffs(Nbasis,maxcont))
-call read_array('basis_centers_sto3g.txt', Nbasis, 3, basis_centers)                        ! basis_centers contains the coordinates at which the basis functions are centered
-call read_array('primitive_exponents_sto3g.txt', Nbasis, maxcont, primitive_exponents)      ! primitive_exponents contains the exponents of the primitive basis functions
-call read_array('cartesian_exponents_sto3g.txt', Nbasis, 3, cartesian_exponents)            ! cartesian_exponents contains the exponents l,m,n (x^l*y^m*z^n*exp(-a*r^2)) indicating the angular momentum
-call read_array('contraction_coeffs_sto3g.txt', Nbasis, maxcont, contraction_coeffs)        ! contraction_coeffs contains the contraction coefficients for each basis function
+  allocate(basis_centers(Nbasis,3), primitive_exponents(Nbasis, maxcont),&
+ cartesian_exponents(Nbasis,3), contraction_coeffs(Nbasis,maxcont))
+
+    ! Initialize matrices
+    basis_centers = 0.0d0
+    primitive_exponents = 0.0d0
+    cartesian_exponents = 0.0d0
+    contraction_coeffs = 0.0d0
+
+    ! Generate MD matrices
+    offset = 0  ! Initialize the index before calling
+
+    ! Populate MD matrices for atom A and atom B
+    call GenerateMDMatrices(basis_A, pos_A, Nbasis, maxcont, offset, &
+                          basis_centers, primitive_exponents, &
+                          cartesian_exponents, contraction_coeffs)
+    call GenerateMDMatrices(basis_B, pos_B, Nbasis, maxcont, offset, &
+                          basis_centers, primitive_exponents, &
+                          cartesian_exponents, contraction_coeffs)
 
 ! Calculate overlap matrix
 allocate(S(Nbasis,Nbasis))

@@ -1,4 +1,4 @@
-! Test program for basis set parsing
+! Test program for basis set parsing get nbasis
 program BasisSet_Test
     use BasisSet_Module
     implicit none

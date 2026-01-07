@@ -30,11 +30,6 @@ real(8) :: pos_A(3), pos_B(3)
 !allocate(basis_centers(Nbasis,3), primitive_exponents(Nbasis, maxcont),&
 !cartesian_exponents(Nbasis,3), contraction_coeffs(Nbasis,maxcont))
 
-! Initialize matrices
-!basis_centers = 0.0d0
-!primitive_exponents = 0.0d0
-!cartesian_exponents = 0.0d0
-!contraction_coeffs = 0.0d0
 
 ! Generate MD matrices
 !offset = 0  ! Initialize the index before calling

@@ -1,84 +1,128 @@
 program MacMurchieDavidson
     use BasisSet_Module
 implicit none
-integer :: Nbasis, MaxCont, i, j, t, t_max, k, l, i_max, j_max, d, m, n
+integer :: Nbasis, MaxCont, NAtoms, opt,i 
 double precision, allocatable, dimension(:,:) :: basis_centers, primitive_exponents, cartesian_exponents, contraction_coeffs
 double precision, allocatable, dimension(:,:,:) ::  E_tij
 double precision, dimension(3) :: rA, rB, rAB, rPA, rPB, rP
 double precision :: p, a, b, mu, xAB, xPA, xPB, Nn, Nm, double_factorial, S_ij, dm, dn, S_prim, S_mm, S_nn
-double precision,dimension(:,:), allocatable :: S
+double precision,dimension(:,:), allocatable :: S, coord
 double precision, parameter :: pi = acos(-1.0d0)
+integer,dimension(:),allocatable :: atomtypes
+character(len=100) :: xyz_file, dalton_file
+type(AtomicBasis) :: basis_A, basis_B
+type(AtomicBasis), dimension(:), allocatable :: MolecularBasis
+integer :: unit_idx, n_A, n_B, offset
+real(8) :: pos_A(3), pos_B(3)
 
-    type(AtomicBasis) :: basis_A, basis_B
-    integer :: unit_idx, n_A, n_B, offset
-    real(8) :: pos_A(3), pos_B(3)
+!pos_A = [0.0d0, 0.0d0, 0.0d0]
+!pos_B = [0.0d0, 0.0d0, 2.132d0]
 
-    pos_A = [0.0d0, 0.0d0, 0.0d0]
-    pos_B = [0.0d0, 0.0d0, 2.132d0]
+!open(newunit=unit_idx, file='6-31g.1.dalton', status='old')
+!call ParseElement(unit_idx, 6, basis_A) ! read basis for Carbon (Z=6)
+!call ParseElement(unit_idx, 6, basis_B) ! read basis for Carbon (Z=6)
+!close(unit_idx)
+!n_A = GetNBasis(basis_A)
+!n_B = GetNBasis(basis_B)
+!Nbasis = n_A + n_B
+!MaxCont = max(GetMaxCont(basis_A), GetMaxCont(basis_B))
+!print *, "Nbasis =", Nbasis, " maxcont =", MaxCont
+!allocate(basis_centers(Nbasis,3), primitive_exponents(Nbasis, maxcont),&
+!cartesian_exponents(Nbasis,3), contraction_coeffs(Nbasis,maxcont))
 
-    open(newunit=unit_idx, file='6-31g.1.dalton', status='old')
-    call ParseElement(unit_idx, 6, basis_A) ! read basis for Carbon (Z=6)
-    call ParseElement(unit_idx, 6, basis_B) ! read basis for Carbon (Z=6)
-    close(unit_idx)
+! Initialize matrices
+!basis_centers = 0.0d0
+!primitive_exponents = 0.0d0
+!cartesian_exponents = 0.0d0
+!contraction_coeffs = 0.0d0
 
-    n_A = GetNBasis(basis_A)
-    n_B = GetNBasis(basis_B)
-    Nbasis = n_A + n_B
-    MaxCont = max(GetMaxCont(basis_A), GetMaxCont(basis_B))
-    print *, "Nbasis =", Nbasis, " maxcont =", MaxCont
-    
-  allocate(basis_centers(Nbasis,3), primitive_exponents(Nbasis, maxcont),&
-  cartesian_exponents(Nbasis,3), contraction_coeffs(Nbasis,maxcont))
+! Generate MD matrices
+!offset = 0  ! Initialize the index before calling
 
-    ! Initialize matrices
-    basis_centers = 0.0d0
-    primitive_exponents = 0.0d0
-    cartesian_exponents = 0.0d0
-    contraction_coeffs = 0.0d0
-
-    ! Generate MD matrices
-    offset = 0  ! Initialize the index before calling
-
-    ! Populate MD matrices for atom A and atom B
-    call GenerateMDMatrices(basis_A, pos_A, Nbasis, maxcont, offset, &
-                          basis_centers, primitive_exponents, &
-                          cartesian_exponents, contraction_coeffs)
-    call GenerateMDMatrices(basis_B, pos_B, Nbasis, maxcont, offset, &
-                          basis_centers, primitive_exponents, &
-                          cartesian_exponents, contraction_coeffs)
+! Populate MD matrices for atom A and atom B
+!call GenerateMDMatrices(basis_A, pos_A, Nbasis, maxcont, offset, &
+!                        basis_centers, primitive_exponents, &
+!                          cartesian_exponents, contraction_coeffs)
+!call GenerateMDMatrices(basis_B, pos_B, Nbasis, maxcont, offset, &
+!                        basis_centers, primitive_exponents, &
+!                        cartesian_exponents, contraction_coeffs)
 
 
-!maxcont = 6
-!Nbasis = 18
-!allocate(basis_centers(Nbasis,3), primitive_exponents(Nbasis, maxcont),cartesian_exponents(Nbasis,3), contraction_coeffs(Nbasis,maxcont))
-!call read_array('cartesian_exponents.txt', Nbasis,3, cartesian_exponents)
-!call read_array('basis_centers.txt',Nbasis,3, basis_centers)
-!call read_array('primitive_exponents.txt',Nbasis,maxcont, primitive_exponents)
-!call read_array('contraction_coeffs.txt',Nbasis,maxcont, contraction_coeffs)
 
-write(*,*) "Basis centers"
-call write_array(basis_centers,Nbasis,3)
-write(*,*) "cartesian_exponents"
-call write_array(cartesian_exponents,Nbasis,3)
-write(*,*) "primitive_exponents"
-call write_array(primitive_exponents,Nbasis,maxcont)
-write(*,*) "contraction_coeffs"
-call write_array(contraction_coeffs,Nbasis,maxcont)
+! Program start
+! Read .xyz and .dalton filenames from command line
+write(*,'(a)') '==============================================================='
+write(*,'(a)') '   OVERLAP MATRIX CALCULATION'
+write(*,'(a)') '   McMurchie–Davidson Gaussian Integral Algorithm'
+write(*,'(a)') '==============================================================='
+write(*,*)
+write(*,'(a)') ' This program calculates the overlap matrix for an arbitrary'
+write(*,'(a)') ' molecule using Cartesian Gaussian-type orbitals.           '
+write(*,'(a)') ' The calculation is performed via the Murchie–Davidson scheme.'
+write(*,*)
+write(*,'(a)') ' Please enter the required input filenames'
+write(*,'(a)') '   1) Molecular geometry in .xyz format'
+write(*,'(a)') '   2) Gaussian basis set in .dalton format'
+write(*,*)
+write(*,'(a)') '---------------------------------------------------------------'
+write(*,*)
+write(*,*) " 1) .xyz file containing the molecular geometry"
+read(*,*) xyz_file
+write(*,*)
+write(*,*) " 2) .dalton file containing the basis set"
+read(*,*) dalton_file
+write(*,*)
+write(*,'(a)') '---------------------------------------------------------------'
+
+! Read molecular geometry
+call read_NAtoms(xyz_file, NAtoms)
+allocate(coord(NAtoms,3),atomtypes(NAtoms),MolecularBasis(NAtoms))
+call read_molecule(xyz_file, NAtoms, coord, atomtypes)
+
+! Parse basis set from .dalton files
+NBasis = 0
+maxcont = 1
+open(newunit=unit_idx, file=dalton_file, status='old')
+do i = 1, NAtoms
+ call ParseElement(unit_idx, atomtypes(i), MolecularBasis(i)) ! read basis for Carbon (Z=6) 
+ NBasis = NBasis + GetNBasis(MolecularBasis(i))
+ MaxCont = max(MaxCont,GetMaxCont(MolecularBasis(i)))
+end do
+close(unit_idx)
+
+! Prepare matrices basis_centers, primitive_exponents, cartesian_exponents, contraction_coeffs which store the basis set data
+allocate(basis_centers(Nbasis,3), primitive_exponents(Nbasis, maxcont), cartesian_exponents(Nbasis,3), contraction_coeffs(Nbasis,maxcont))  
+basis_centers = 0.0d0
+primitive_exponents = 0.0d0
+cartesian_exponents = 0.0d0
+contraction_coeffs = 0.0d0
+offset = 0  ! Initialize the index before calling
+do i = 1, NAtoms
+  call GenerateMDMatrices(MolecularBasis(i), coord(i,:), Nbasis, maxcont, offset,basis_centers, primitive_exponents, cartesian_exponents, contraction_coeffs)
+end do
 
 ! Calculate overlap matrix
 allocate(S(Nbasis,Nbasis))
 call calc_S(Nbasis, maxcont, basis_centers, primitive_exponents, cartesian_exponents, contraction_coeffs,S)
-write(*,*) "Overlap matrix"
+
+! Print the overlap matrix
+write(*,*)
+write(*,*) ' Calculated Overlap matrix '
+write(*,*)
 call write_array(S,Nbasis,Nbasis)
+
 
 end program MacMurchieDavidson
 
 subroutine write_array(arr, m, n)
 integer, intent(in) :: m, n
 double precision, intent(in), dimension(m,n) :: arr
-integer :: i
+integer :: i,j
 do i=1,m
-  write(*,*) arr(i,:)
+  do j=1,n
+    write(*,'(F11.6)',advance='no') arr(i,j)
+  end do
+  write(*,*)
 end do
 end subroutine write_array
 
@@ -96,6 +140,56 @@ do i=1,m
 end do
 end subroutine read_array
 
+subroutine read_NAtoms(file, NAtoms)
+implicit none
+character(len=100), intent(in) :: file
+integer, intent(out) :: NAtoms
+open(1, file=file, status="old", action='read')
+read(1,*) NAtoms
+close(1)        ! read number of atoms
+end subroutine read_NAtoms
+
+subroutine read_molecule(file, NAtoms, coord, atomtypes)
+implicit none
+character(len=100), intent(in) :: file
+integer, intent(in) :: NAtoms
+integer :: i,j, NAtomsDummy
+double precision, dimension(NAtoms,3) :: coord_ext
+double precision, intent(out), dimension(NAtoms,3) :: coord
+character(len=2) :: atomtype_char
+integer, dimension(NAtoms), intent(out) :: atomtypes
+character(len=2), parameter :: elements(118) = [ &
+        'H ','He','Li','Be','B ','C ','N ','O ','F ','Ne', &
+        'Na','Mg','Al','Si','P ','S ','Cl','Ar','K ','Ca', &
+        'Sc','Ti','V ','Cr','Mn','Fe','Co','Ni','Cu','Zn', &
+        'Ga','Ge','As','Se','Br','Kr','Rb','Sr','Y ','Zr', &
+        'Nb','Mo','Tc','Ru','Rh','Pd','Ag','Cd','In','Sn', &
+        'Sb','Te','I ','Xe','Cs','Ba','La','Ce','Pr','Nd', &
+        'Pm','Sm','Eu','Gd','Tb','Dy','Ho','Er','Tm','Yb', &
+        'Lu','Hf','Ta','W ','Re','Os','Ir','Pt','Au','Hg', &
+        'Tl','Pb','Bi','Po','At','Rn','Fr','Ra','Ac','Th', &
+        'Pa','U ','Np','Pu','Am','Cm','Bk','Cf','Es','Fm', &
+        'Md','No','Lr','Rf','Db','Sg','Bh','Hs','Mt','Ds', &
+        'Rg','Cn','Nh','Fl','Mc','Lv','Ts','Og' ]
+! Open and read input file
+open(1, file=file, status="old", action='read')
+read(1,*) NAtomsDummy         ! read number of atoms
+read(1,*)                     ! read comment line in .xyz file
+do i=1,NAtoms
+  read(1,*) atomtype_char, coord_ext(i,1), coord_ext(i,2), coord_ext(i,3) ! read coordinates and mass line by line
+  do j=1,118
+    if (atomtype_char==trim(elements(j))) then
+      atomtypes(i) = j
+      exit
+    else if (j==118) then
+      write(*,*) "Error while parsing .xyz file: Unknown atom type:", atomtype_char
+    end if
+  end do
+end do
+coord = 1.8897259886*coord_ext ! Convert coordinates from A into bohrs
+close(1)
+end subroutine read_molecule
+
 
 ! This subroutine calculates the MacMurchie-Davidson coefficients E_ti. The coefficients are calculated up to i = i_max and j = j_max
 subroutine calc_E_tij(i_max, j_max, p, mu, xAB, xPA, xPB, E_tij)
@@ -111,8 +205,9 @@ do i=0,i_max
   do j=0,j_max
     do t=0,i+j+1
       if (t > t_max) then
+        ! do nothing
       else if (t == t_max) then
-        E_tij(t,i+1,j) = 1/(2*p)*E_tij(t-1,i,j) + xPA*E_tij(t,i,j)
+        E_tij(t,i+1,j) = 1/(2*p)*E_tij(t-1,i,j) + xPA*E_tij(t,i,j)  ! last term (t+1)*E_tij(t+1,i,j) does not contribute anymore
         E_tij(t,i,j+1) = 1/(2*p)*E_tij(t-1,i,j) + xPB*E_tij(t,i,j)
       else
         E_tij(t,i+1,j) = 1/(2*p)*E_tij(t-1,i,j) + xPA*E_tij(t,i,j) + (t+1)*E_tij(t+1,i,j)
@@ -171,23 +266,19 @@ S = 0.0d0
 
 ! Iterate over contracted Gaussians i and j
 do j=1,NBasis
-  write(*,*) "j", j
   rB = basis_centers(j,:)
 do i=1,j
-  write(*,*) "i", i
   rA = basis_centers(i,:)
   rAB = rA - rB
   S_ij = 0.0d0
   ! Iterate over primitive Gaussians n in basis function j and m in basis function i
   do n=1,maxcont
-    if (i == 1 .and. j == 1) write(*,*) "n", n
     dn = contraction_coeffs(j,n)
-    if (dn == 0.0d0) cycle        ! break from loop if contraction coefficient is zero (= all contributing primitives are through)
+    if (dn == 0.0d0) cycle        ! skip this primitive if contraction coefficient is zero 
     b = primitive_exponents(j,n)
   do m=1,maxcont
-    if (i == 1 .and. j == 1) write(*,*) "m", m
     dm = contraction_coeffs(i,m)
-    if (dm == 0.0d0) cycle         ! break from loop if contraction coefficient is zero (= all contributing primitives are through)
+    if (dm == 0.0d0) cycle        ! skip this primitive if contraction coefficient is zero 
     a = primitive_exponents(i,m)
     p = a + b
     mu = a*b/p
@@ -196,10 +287,8 @@ do i=1,j
     rPB = rP-rB
 
   S_prim = dm*dn
-  if (i == 1 .and. j == 1) write(*,*) "S_prim = dm*dn", S_prim 
   ! Iterate over x,y,z
   do d=1,3
-    if (i == 1 .and. j == 1) write(*,*) "d", d
     i_max = cartesian_exponents(i,d)
     j_max = cartesian_exponents(j,d)
     t_max = i_max + j_max
@@ -212,11 +301,8 @@ do i=1,j
     ! Calculate normalization constant for primitive Gaussian for the given cartesian component
     Nm = 1/SQRT(double_factorial(REAL(2*i_max-1,kind=8))/((4*a)**i_max)*SQRT(pi/(2*a)))
     Nn = 1/SQRT(double_factorial(REAL(2*j_max-1,kind=8))/((4*b)**j_max)*SQRT(pi/(2*b)))
-    if (i == 1 .and. j == 1) write(*,*) "Nm, Nn", Nm, Nn
     ! Multiply current value of primitive overlap with contributing factor form the given cartesian component
     S_prim = S_prim*Nm*Nn*E_tij(0,i_max,j_max)*SQRT(pi/p)
-    if (i == 1 .and. j == 1) write(*,*) "S_prim", S_prim
-    if (S_prim/=S_prim) write(*,*) "Detected S_prim = nan for i", i, "j", j, "m", m, "n", n, "d", d
    deallocate(E_tij)
   end do
   ! Add overlap between primitives m,n to total overlap between basis functions i,j
@@ -229,6 +315,9 @@ do i=1,j
 end do
 end do
 end subroutine calc_S
+
+
+
 
 
 

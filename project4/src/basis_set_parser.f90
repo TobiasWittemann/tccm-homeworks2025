@@ -236,7 +236,7 @@ contains
             L_val = basis%shells(s)%L
             do a = 1, basis%shells(s)%n_ao
                 ! Get normalization constant for this contracted orbital (pre-calculated)
-                c_norm = get_contracted_norm(basis%shells(s), a, L_val)
+                !c_norm = get_contracted_norm(basis%shells(s), a, L_val)
                 
                 ! --- Core: Expand Cartesian components based on L ---
                 do i = L_val, 0, -1
@@ -256,10 +256,10 @@ contains
                         primitive_exponents(b_idx, p) = basis%shells(s)%prims(p)%alpha
                         
                         ! Calculate primitive Gaussian normalization constant
-                        p_norm = calc_prim_norm(primitive_exponents(b_idx, p), L_val)
+                        !p_norm = calc_prim_norm(primitive_exponents(b_idx, p), L_val)
                         
                         ! Final coefficient = File coefficient * Primitive Norm * Contracted Norm
-                        contraction_coeffs(b_idx, p) = basis%shells(s)%prims(p)%d(a) * p_norm * c_norm
+                        contraction_coeffs(b_idx, p) = basis%shells(s)%prims(p)%d(a) !* p_norm * c_norm
                     end do
                 end do
                 end do

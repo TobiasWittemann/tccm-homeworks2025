@@ -45,7 +45,6 @@ do i=1,(l+1)*(l+2)/2
 write(*,*)
 end do
 
-write(*,*) "Multiplication of the transformation matrix with itself"
 
 
 

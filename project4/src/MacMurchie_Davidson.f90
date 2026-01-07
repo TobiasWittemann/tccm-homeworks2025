@@ -28,7 +28,7 @@ double precision, parameter :: pi = acos(-1.0d0)
     print *, "Nbasis =", Nbasis, " maxcont =", MaxCont
     
   allocate(basis_centers(Nbasis,3), primitive_exponents(Nbasis, maxcont),&
- cartesian_exponents(Nbasis,3), contraction_coeffs(Nbasis,maxcont))
+  cartesian_exponents(Nbasis,3), contraction_coeffs(Nbasis,maxcont))
 
     ! Initialize matrices
     basis_centers = 0.0d0
@@ -46,6 +46,15 @@ double precision, parameter :: pi = acos(-1.0d0)
     call GenerateMDMatrices(basis_B, pos_B, Nbasis, maxcont, offset, &
                           basis_centers, primitive_exponents, &
                           cartesian_exponents, contraction_coeffs)
+
+
+!maxcont = 6
+!Nbasis = 18
+!allocate(basis_centers(Nbasis,3), primitive_exponents(Nbasis, maxcont),cartesian_exponents(Nbasis,3), contraction_coeffs(Nbasis,maxcont))
+!call read_array('cartesian_exponents.txt', Nbasis,3, cartesian_exponents)
+!call read_array('basis_centers.txt',Nbasis,3, basis_centers)
+!call read_array('primitive_exponents.txt',Nbasis,maxcont, primitive_exponents)
+!call read_array('contraction_coeffs.txt',Nbasis,maxcont, contraction_coeffs)
 
 write(*,*) "Basis centers"
 call write_array(basis_centers,Nbasis,3)
@@ -162,19 +171,23 @@ S = 0.0d0
 
 ! Iterate over contracted Gaussians i and j
 do j=1,NBasis
+  write(*,*) "j", j
   rB = basis_centers(j,:)
 do i=1,j
+  write(*,*) "i", i
   rA = basis_centers(i,:)
   rAB = rA - rB
   S_ij = 0.0d0
   ! Iterate over primitive Gaussians n in basis function j and m in basis function i
   do n=1,maxcont
+    if (i == 1 .and. j == 1) write(*,*) "n", n
     dn = contraction_coeffs(j,n)
-    !if (dn == 0.0d0) exit         ! break from loop if contraction coefficient is zero (= all contributing primitives are through)
+    if (dn == 0.0d0) cycle        ! break from loop if contraction coefficient is zero (= all contributing primitives are through)
     b = primitive_exponents(j,n)
   do m=1,maxcont
+    if (i == 1 .and. j == 1) write(*,*) "m", m
     dm = contraction_coeffs(i,m)
-    !if (dm == 0.0d0) exit         ! break from loop if contraction coefficient is zero (= all contributing primitives are through)
+    if (dm == 0.0d0) cycle         ! break from loop if contraction coefficient is zero (= all contributing primitives are through)
     a = primitive_exponents(i,m)
     p = a + b
     mu = a*b/p
@@ -183,8 +196,10 @@ do i=1,j
     rPB = rP-rB
 
   S_prim = dm*dn
+  if (i == 1 .and. j == 1) write(*,*) "S_prim = dm*dn", S_prim 
   ! Iterate over x,y,z
   do d=1,3
+    if (i == 1 .and. j == 1) write(*,*) "d", d
     i_max = cartesian_exponents(i,d)
     j_max = cartesian_exponents(j,d)
     t_max = i_max + j_max
@@ -197,9 +212,12 @@ do i=1,j
     ! Calculate normalization constant for primitive Gaussian for the given cartesian component
     Nm = 1/SQRT(double_factorial(REAL(2*i_max-1,kind=8))/((4*a)**i_max)*SQRT(pi/(2*a)))
     Nn = 1/SQRT(double_factorial(REAL(2*j_max-1,kind=8))/((4*b)**j_max)*SQRT(pi/(2*b)))
+    if (i == 1 .and. j == 1) write(*,*) "Nm, Nn", Nm, Nn
     ! Multiply current value of primitive overlap with contributing factor form the given cartesian component
     S_prim = S_prim*Nm*Nn*E_tij(0,i_max,j_max)*SQRT(pi/p)
-    deallocate(E_tij)
+    if (i == 1 .and. j == 1) write(*,*) "S_prim", S_prim
+    if (S_prim/=S_prim) write(*,*) "Detected S_prim = nan for i", i, "j", j, "m", m, "n", n, "d", d
+   deallocate(E_tij)
   end do
   ! Add overlap between primitives m,n to total overlap between basis functions i,j
   S_ij = S_ij + S_prim

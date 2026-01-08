@@ -30,6 +30,24 @@ call write_array(acceleration, NAtoms,3)
 lj_potential = V(epsilon, sigma, NAtoms, distance)
 write(*,*) 'Lennard-Jones Potential (kJ/mol): ', lj_potential
 
+! Compute kinetic energy function T
+double precision function T(NAtoms, velocity, mass)
+    implicit none
+    integer, intent(in) :: NAtoms
+    double precision, intent(in) :: velocity(NAtoms,3)
+    double precision, intent(in) :: mass(NAtoms)
+
+    integer :: i
+    double precision :: v2
+
+    T = 0.0d0
+    do i = 1, NAtoms
+        v2 = velocity(i,1)**2 + velocity(i,2)**2 + velocity(i,3)**2
+        T = T + 0.5d0 * mass(i) * v2
+    end do
+end function T
+
+
 ! Run MD simulation
 velocity = 0.0d0 ! initialize velocities to zero
 call run_md(NAtoms, nsteps, dt, distance, mass, epsilon, sigma, coord, velocity, acceleration)
@@ -77,6 +95,7 @@ sigma = 0.1*sigma_ext ! 1 A = 0.1 nm
 write(*,*) "Number of atoms  : ", NAtoms
 write(*,*) "Epsilon / kJ/mol : ", epsilon_ext
 write(*,*) "Sigma / A        : ", sigma_ext
+
 ! Allocate Coordinate array
 do i=1,NAtoms
   write(*,*) "i", i

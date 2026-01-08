@@ -1,7 +1,9 @@
 program MD
 implicit none
 integer :: NAtoms, i, j, nsteps
-double precision :: m, dist, epsilon, sigma, epsilon_ext, sigma_ext, lj_potential, V, dt
+double precision :: m, dist, epsilon, sigma, epsilon_ext, sigma_ext, lj_potential, dt
+double precision, external :: V, T, E
+double precision :: kinetic_energy, potential_energy, total_energy
 double precision, allocatable :: coord(:,:), coord_ext(:,:), mass(:)
 double precision, allocatable :: distance(:,:), acceleration(:,:), velocity(:,:)
 character(len=100) :: file
@@ -33,11 +35,17 @@ write(*,*) 'Lennard-Jones Potential (kJ/mol): ', lj_potential
 ! Run MD simulation
 velocity = 0.0d0 ! initialize velocities to zero
 call run_md(NAtoms, nsteps, dt, distance, mass, epsilon, sigma, coord, velocity, acceleration)
+call compute_distances(NAtoms, coord, distance)   ! ensure distance matches final coord
+potential_energy = V(epsilon, sigma, NAtoms, distance)
+kinetic_energy   = T(NAtoms, velocity, mass)
+total_energy     = E(kinetic_energy, potential_energy)
 write(*,*) 'Simulation completed.'
+write(*,*) 'Final T (kJ/mol): ', kinetic_energy
+write(*,*) 'Final V (kJ/mol): ', potential_energy
+write(*,*) 'Final E (kJ/mol): ', total_energy
 write(*,*) 'Final Coordinates after MD (A):'
 call write_array(coord * 10.0d0, NAtoms, 3)
 end program MD
-
 
 subroutine write_array(arr, m, n)
 integer, intent(in) :: m, n
@@ -77,6 +85,7 @@ sigma = 0.1*sigma_ext ! 1 A = 0.1 nm
 write(*,*) "Number of atoms  : ", NAtoms
 write(*,*) "Epsilon / kJ/mol : ", epsilon_ext
 write(*,*) "Sigma / A        : ", sigma_ext
+
 ! Allocate Coordinate array
 do i=1,NAtoms
   write(*,*) "i", i
@@ -103,7 +112,6 @@ do j=1,NAtoms
   end do
 end do
 end subroutine compute_distances
-
 
 subroutine compute_acc(NAtoms, epsilon, sigma, coord, mass, distance, acceleration)
 implicit none
@@ -151,15 +159,40 @@ double precision function V(epsilon, sigma, NAtoms, distance)
     end do
 end function V
 
+double precision function T(NAtoms, velocity, mass)
+    implicit none
+    integer, intent(in) :: NAtoms
+    double precision, intent(in) :: velocity(NAtoms,3)
+    double precision, intent(in) :: mass(NAtoms)
+    integer :: i
+    double precision :: v2
+
+    T = 0.0d0
+    do i = 1, NAtoms
+        v2 = velocity(i,1)**2 + velocity(i,2)**2 + velocity(i,3)**2
+        T = T + 0.5d0 * mass(i) * v2
+    end do
+end function T
+
+double precision function E(Tkin, Vpot)
+    implicit none
+    double precision, intent(in) :: Tkin, Vpot
+    E = Tkin + Vpot
+end function E
+
 subroutine run_md(NAtoms, nsteps, dt, distance, mass, epsilon, sigma, coord, velocity, acceleration)
     implicit none
     integer, intent(in) :: NAtoms, nsteps
     double precision, intent(in) :: dt, mass(NAtoms), epsilon, sigma
     double precision, intent(inout), dimension(NAtoms,3) :: coord, velocity, acceleration
     double precision, intent(inout) :: distance(NAtoms, NAtoms)
-    integer :: step, i, unit_traj
-    double precision :: lj_potential, V 
     
+    integer :: step, i, unit_traj
+    double precision, external :: V, T, E
+    double precision :: lj_potential, potential_energy, kinetic_energy, total_energy
+    double precision :: E0, dE
+    logical :: E0_set
+
     unit_traj = 20
     open(unit_traj, file='traj.xyz', status='replace', action='write')
     
@@ -174,16 +207,21 @@ subroutine run_md(NAtoms, nsteps, dt, distance, mass, epsilon, sigma, coord, vel
     
         ! Write trajectory every 10 steps
         if (mod(step, 10) == 0) then
-            lj_potential = V(epsilon, sigma, NAtoms, distance)
-            ! TODO: compute kinetic energy T, total_energy and check energy conservation
+            kinetic_energy   = T(NAtoms, velocity, mass)
+            potential_energy = V(epsilon, sigma, NAtoms, distance)
+            total_energy     = kinetic_energy + potential_energy
+            ! alternatively: total_energy = E(NAtoms, velocity, mass, epsilon, sigma, distance)
 
-            ! Write coordinates to XYZ trajectory file
             write(unit_traj,*) NAtoms
-            ! TODO: write comment line with energy info
+            write(unit_traj,'(A,I8,3(A,F20.10))') 'Step=', step, &
+              '  T(kJ/mol)=', kinetic_energy, &
+              '  V(kJ/mol)=', potential_energy, &
+              '  E(kJ/mol)=', total_energy
+            
             do i = 1, NAtoms
                 write(unit_traj,'(A,3F12.6)') 'Ar', coord(i, :) * 10.0d0 ! write coordinates in Angstroms
             end do
-        end if
+            end if
     end do
     close(unit_traj)
 end subroutine run_md

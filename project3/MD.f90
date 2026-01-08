@@ -32,25 +32,20 @@ call write_array(acceleration, NAtoms,3)
 lj_potential = V(epsilon, sigma, NAtoms, distance)
 write(*,*) 'Lennard-Jones Potential (kJ/mol): ', lj_potential
 
-
-
 ! Run MD simulation
 velocity = 0.0d0 ! initialize velocities to zero
 call run_md(NAtoms, nsteps, dt, distance, mass, epsilon, sigma, coord, velocity, acceleration)
-write(*,*) 'Simulation completed.'
-write(*,*) 'Final Coordinates after MD (A):'
-call write_array(coord * 10.0d0, NAtoms, 3)
-
 call compute_distances(NAtoms, coord, distance)   ! ensure distance matches final coord
 potential_energy = V(epsilon, sigma, NAtoms, distance)
 kinetic_energy   = T(NAtoms, velocity, mass)
 total_energy     = E(kinetic_energy, potential_energy)
-
+write(*,*) 'Simulation completed.'
 write(*,*) 'Final T (kJ/mol): ', kinetic_energy
 write(*,*) 'Final V (kJ/mol): ', potential_energy
 write(*,*) 'Final E (kJ/mol): ', total_energy
+write(*,*) 'Final Coordinates after MD (A):'
+call write_array(coord * 10.0d0, NAtoms, 3)
 end program MD
-
 
 subroutine write_array(arr, m, n)
 integer, intent(in) :: m, n
@@ -117,7 +112,6 @@ do j=1,NAtoms
   end do
 end do
 end subroutine compute_distances
-
 
 subroutine compute_acc(NAtoms, epsilon, sigma, coord, mass, distance, acceleration)
 implicit none
@@ -186,7 +180,6 @@ double precision function E(Tkin, Vpot)
     E = Tkin + Vpot
 end function E
 
-
 subroutine run_md(NAtoms, nsteps, dt, distance, mass, epsilon, sigma, coord, velocity, acceleration)
     implicit none
     integer, intent(in) :: NAtoms, nsteps
@@ -200,7 +193,6 @@ subroutine run_md(NAtoms, nsteps, dt, distance, mass, epsilon, sigma, coord, vel
     double precision :: E0, dE
     logical :: E0_set
 
-    
     unit_traj = 20
     open(unit_traj, file='traj.xyz', status='replace', action='write')
     

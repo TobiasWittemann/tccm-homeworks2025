@@ -1,10 +1,8 @@
 program MacMurchieDavidson
     use BasisSet_Module
 implicit none
-integer :: Nbasis, MaxCont, NAtoms, opt,i 
+integer :: Nbasis, MaxCont, NAtoms,i,unit_idx, offset 
 double precision, allocatable, dimension(:,:) :: basis_centers, primitive_exponents, cartesian_exponents, contraction_coeffs
-double precision, allocatable, dimension(:,:,:) ::  E_tij
-double precision, dimension(3) :: rA, rB, rAB, rPA, rPB, rP
 double precision :: p, a, b, mu, xAB, xPA, xPB, Nn, Nm, double_factorial, S_ij, dm, dn, S_prim, S_mm, S_nn
 double precision,dimension(:,:), allocatable :: S, coord
 double precision, parameter :: pi = acos(-1.0d0)
@@ -12,36 +10,6 @@ integer,dimension(:),allocatable :: atomtypes
 character(len=100) :: xyz_file, dalton_file
 type(AtomicBasis) :: basis_A, basis_B
 type(AtomicBasis), dimension(:), allocatable :: MolecularBasis
-integer :: unit_idx, n_A, n_B, offset
-real(8) :: pos_A(3), pos_B(3)
-
-!pos_A = [0.0d0, 0.0d0, 0.0d0]
-!pos_B = [0.0d0, 0.0d0, 2.132d0]
-
-!open(newunit=unit_idx, file='6-31g.1.dalton', status='old')
-!call ParseElement(unit_idx, 6, basis_A) ! read basis for Carbon (Z=6)
-!call ParseElement(unit_idx, 6, basis_B) ! read basis for Carbon (Z=6)
-!close(unit_idx)
-!n_A = GetNBasis(basis_A)
-!n_B = GetNBasis(basis_B)
-!Nbasis = n_A + n_B
-!MaxCont = max(GetMaxCont(basis_A), GetMaxCont(basis_B))
-!print *, "Nbasis =", Nbasis, " maxcont =", MaxCont
-!allocate(basis_centers(Nbasis,3), primitive_exponents(Nbasis, maxcont),&
-!cartesian_exponents(Nbasis,3), contraction_coeffs(Nbasis,maxcont))
-
-
-! Generate MD matrices
-!offset = 0  ! Initialize the index before calling
-
-! Populate MD matrices for atom A and atom B
-!call GenerateMDMatrices(basis_A, pos_A, Nbasis, maxcont, offset, &
-!                        basis_centers, primitive_exponents, &
-!                          cartesian_exponents, contraction_coeffs)
-!call GenerateMDMatrices(basis_B, pos_B, Nbasis, maxcont, offset, &
-!                        basis_centers, primitive_exponents, &
-!                        cartesian_exponents, contraction_coeffs)
-
 
 
 ! Program start

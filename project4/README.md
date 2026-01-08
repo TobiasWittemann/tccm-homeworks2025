@@ -1,3 +1,13 @@
+## Usage
+# MacMurchie-Davidson
+This program calculates the overlap matrix for an arbitrary molecule in a cartesian Gaussian basis set.
+Using the MacMurchie-Davidson recursion relations, it allows the treatment of basis functions with arbitrary angular momentum.
+As inputs, the geometry of the molecule has to be provided as .xyz file and the basis set needs to be provided in .dalton format.
+
+# Spherical2Cartesian
+This program calculates the transformation matrix from Spherical GTOs 
+
+
 ## Directory structure
 ```text
 project4/

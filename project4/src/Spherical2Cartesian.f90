@@ -62,6 +62,12 @@ do i = 1, (l+1)*(l+2)/2
   write(*,'(A,3I3,A,ES16.8)') " (i,j,k)=(", index_list(i,1), index_list(i,2), index_list(i,3), ")  S = ", S_shell(i)
 end do
 
+write(*,'(/,A)') "Spherical-harmonic self-overlaps <G_lm|G_lm>:"
+do m = -l, l
+  call calc_S_self_sph(l, m, a, M_trans, index_list, S_self)
+  write(*,'(A,I3,A,ES16.8)') " m = ", m, "  S = ", S_self
+end do
+
 
 !call get_index_list(l,index_list)
 !a = 0.5

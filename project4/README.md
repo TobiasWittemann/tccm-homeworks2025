@@ -41,4 +41,3 @@ project4
     ├── test_macmurchie_davidson.sh
     ├── test_matrix_generation.f90
     └── test_spherical2cartesian.sh 
-

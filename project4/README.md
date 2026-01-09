@@ -5,7 +5,7 @@ Using the MacMurchie-Davidson recursion relations, it allows the treatment of ba
 As inputs, the geometry of the molecule has to be provided as .xyz file and the basis set needs to be provided in .dalton format.
 
 # Spherical2Cartesian
-This program calculates the transformation matrix from Spherical GTOs 
+This program calculates the transformation matrix from Spherical GTOs provided the angular momentum l as an input.
 
 
 ## Directory structure

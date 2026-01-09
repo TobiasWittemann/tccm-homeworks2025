@@ -1,7 +1,7 @@
 ## Usage
 ### Compilation
 ```bash
-gfortran MD.f90 -o md
+gfortran src/MD.f90 -o md
 ```
 ### Simulation
 Execute the binary and follow the interactive prompts to enter the md configurations:

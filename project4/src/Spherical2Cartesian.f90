@@ -68,32 +68,6 @@ do m = -l, l
   write(*,'(A,I3,A,ES16.8)') " m = ", m, "  S = ", S_self
 end do
 
-
-!call get_index_list(l,index_list)
-!a = 0.5
-! Iterate over m = -l,...,+l
-!do m = -l,l
-!S_self = 0.0d0
-!write(*,*) "m", m
-  ! Iterate over cartesian functions i and j
-!  do i = 1,(l+1)*(l+2)/2
-!    do j = 1,(l+1)*(l+2)/2
-!      ! The exponents of the cartesians 
-!      x_exp = index_list(i,1) + index_list(j,1)
-!      y_exp = index_list(i,2) + index_list(j,2)
-!      z_exp = index_list(i,3) + index_list(j,3)
-!      !write(*,*) "exponents", x_exp, y_exp, z_exp
-!      if (mod(x_exp,2)==0.and.mod(y_exp,2)==0.and.mod(z_exp,2)==0) then
-!        !write(*,*) "Non-vanishing contribution to integral!"
-!        call calc_S_self_cart(x_exp/2,y_exp/2,z_exp/2,a,S_self_cart)
-!        S_self = S_self + M_trans(i,m)*M_trans(j,m)*S_self_cart
-!        !write(*,*) "S_self", S_self
-!      end if
-!    end do
-!  end do
-!write(*,*) "Self overlap for m = ", m, ": ", S_self
-!end do
-
 end program main
 
 !Calculation of 1D self-overlap function from Eq. (15)

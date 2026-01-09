@@ -241,10 +241,10 @@ subroutine get_user_input(file_name, nsteps, dt)
 
     ! get input filename
     do
-        write(*, '(A)') '>> Input filename (default "inp.txt"): '
+        write(*, '(A)') '>> Input filename (default "tests/inp.txt"): '
         read(*, '(A)') input_str
         if (len_trim(input_str) == 0) then
-            file_name = 'inp.txt'
+            file_name = 'tests/inp.txt'
         else
             file_name = trim(input_str)
         end if

@@ -15,7 +15,6 @@ gfortran tests/test_matrix_generation.f90 build/basis_set_parser.o -I build/ -o 
 ### Compilation
 ```bash
 gfortran -c src/basis_set_parser.f90 -J build/ -o build/basis_set_parser.o
-# exercise 3.1 print the spherical basis expressions for a certain atom
 gfortran src/spherical_basis_expressions.f90 build/basis_set_parser.o -I build/ -o build/spherical_basis_expressions
 gfortran src/MacMurchie_Davidson.f90 build/basis_set_parser.o -I build/ -o build/MacMurchie_Davidson
 ./build/MacMurchie_Davidson

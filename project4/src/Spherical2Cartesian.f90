@@ -102,6 +102,30 @@ subroutine calc_S_self_cart_ijk(i,j,k,a,S)
 end subroutine calc_S_self_cart_ijk
 
 
+!Subroutine that calculates self-overlap for each Cartesian GTO 
+subroutine calc_shell_self_overlap_cart(l,a,S_shell,index_list)
+  implicit none
+  integer, intent(in) :: l
+  double precision, intent(in) :: a
+  integer, dimension((l+1)*(l+2)/2,3), intent(out) :: index_list
+  double precision, dimension((l+1)*(l+2)/2), intent(out) :: S_shell
+
+  integer :: ncart, p
+  integer :: ix, iy, iz
+
+  ncart = (l+1)*(l+2)/2
+
+  call get_index_list(l, index_list)
+
+  do p = 1, ncart
+    ix = index_list(p,1)
+    iy = index_list(p,2)
+    iz = index_list(p,3)
+    call calc_S_self_cart_ijk(ix, iy, iz, a, S_shell(p))
+  end do
+end subroutine calc_shell_self_overlap_cart
+
+
 subroutine write_array(arr, m, n)
 integer, intent(in) :: m, n
 integer, intent(in), dimension(m,n) :: arr

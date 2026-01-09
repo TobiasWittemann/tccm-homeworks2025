@@ -9,7 +9,7 @@ Execute the binary and follow the interactive prompts to enter the md configurat
 ./md
 ```
 User input:
-- Input filename: Path to your initial coordinates (Press **Enter** for default: inp.txt).
+- Input filename: Path to your initial coordinates (Press **Enter** for default: test/inp.txt).
 
 - Number of steps: Total iterations (Press **Enter** for default: 1000).
 

@@ -90,6 +90,17 @@ double precision function S1D_self(i,a) result(S)
 end function S1D_self
 
 
+! Calculate 3D Cartesian self-overlap using product of three 1D overlaps
+subroutine calc_S_self_cart_ijk(i,j,k,a,S)
+  implicit none
+  integer, intent(in) :: i,j,k
+  double precision, intent(in) :: a
+  double precision, intent(out) :: S
+  double precision :: S1D_self
+
+  S = S1D_self(i,a) * S1D_self(j,a) * S1D_self(k,a)
+end subroutine calc_S_self_cart_ijk
+
 
 subroutine write_array(arr, m, n)
 integer, intent(in) :: m, n

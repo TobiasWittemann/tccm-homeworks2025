@@ -114,6 +114,24 @@ subroutine calc_S_self_cart_ijk(i,j,k,a,S)
   S = S1D_self(i,a) * S1D_self(j,a) * S1D_self(k,a)
 end subroutine calc_S_self_cart_ijk
 
+! Calculation of 1D Gaussian moment via Eq. (32)
+subroutine moment_full_line(p, alpha, I)
+  implicit none
+  integer, intent(in) :: p
+  double precision, intent(in) :: alpha
+  double precision, intent(out) :: I
+  double precision, parameter :: pi = acos(-1.d0)
+  integer :: n
+  double precision, external :: double_factorial
+  if (mod(p,2) /= 0) then
+    I = 0.0d0
+    return
+  end if
+  n = p/2
+  ! From Eq.(32):
+  I = double_factorial(2.d0*real(n,8) - 1.d0) / (2.d0**n) * sqrt(pi) * alpha**(-(real(n,8) + 0.5d0))
+end subroutine moment_full_line
+
 
 !Subroutine that calculates self-overlap for each Cartesian GTO 
 subroutine calc_shell_self_overlap_cart(l,a,S_shell,index_list)

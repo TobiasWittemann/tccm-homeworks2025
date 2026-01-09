@@ -13,7 +13,8 @@ As inputs, the geometry of the molecule has to be provided as .xyz file and the 
 
 #  Testing of the programs
 Tests for all programs are providedin the /tests/ directory. The .f90 can be compiled according to the instructions given in INSTALL.md. The .sh files can
-be exectued to test programs 3.2 and 3.3 after compilation.
+be exectued to test programs 3.2 and 3.3 after compilation. For verification of correctness, the tests/ folder contains an orca output file reporting the overlap
+matrix of CO at the provided geometry in a 6-31G basis.
 
 
 ## Directory structure

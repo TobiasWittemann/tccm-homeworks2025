@@ -114,26 +114,7 @@ subroutine calc_S_self_cart_ijk(i,j,k,a,S)
   S = S1D_self(i,a) * S1D_self(j,a) * S1D_self(k,a)
 end subroutine calc_S_self_cart_ijk
 
-! Calculation of 1D Gaussian moment via Eq. (32)
-subroutine moment_full_line(p, alpha, I)
-  implicit none
-  integer, intent(in) :: p
-  double precision, intent(in) :: alpha
-  double precision, intent(out) :: I
-  double precision, parameter :: pi = acos(-1.d0)
-  integer :: n
-  double precision, external :: double_factorial
-  if (mod(p,2) /= 0) then
-    I = 0.0d0
-    return
-  end if
-  n = p/2
-  ! From Eq.(32):
-  I = double_factorial(2.d0*real(n,8) - 1.d0) / (2.d0**n) * sqrt(pi) * alpha**(-(real(n,8) + 0.5d0))
-end subroutine moment_full_line
-
-
-!Subroutine that calculates self-overlap for each Cartesian GTO 
+! Subroutine that calculates self-overlap for each Cartesian GTO 
 subroutine calc_shell_self_overlap_cart(l,a,S_shell,index_list)
   implicit none
   integer, intent(in) :: l
@@ -155,6 +136,60 @@ subroutine calc_shell_self_overlap_cart(l,a,S_shell,index_list)
     call calc_S_self_cart_ijk(ix, iy, iz, a, S_shell(p))
   end do
 end subroutine calc_shell_self_overlap_cart
+
+
+! Calculation of 1D Gaussian moment via Eq. (32)
+subroutine moment_full_line(p, alpha, I)
+  implicit none
+  integer, intent(in) :: p
+  double precision, intent(in) :: alpha
+  double precision, intent(out) :: I
+  double precision, parameter :: pi = acos(-1.d0)
+  integer :: n
+  double precision, external :: double_factorial
+  if (mod(p,2) /= 0) then
+    I = 0.0d0
+    return
+  end if
+  n = p/2
+  ! From Eq.(32):
+  I = double_factorial(2.d0*real(n,8) - 1.d0) / (2.d0**n) * sqrt(pi) * alpha**(-(real(n,8) + 0.5d0))
+end subroutine moment_full_line
+
+! Calculation of Spherical-harmonic GTO self-overlap
+subroutine calc_S_self_sph(l, m, a, M_trans, index_list, S)
+  implicit none
+  integer, intent(in) :: l, m
+  double precision, intent(in) :: a
+  double precision, dimension((l+1)*(l+2)/2, -l:+l), intent(in) :: M_trans
+  integer, dimension((l+1)*(l+2)/2, 3), intent(in) :: index_list
+  double precision, intent(out) :: S
+
+  integer :: i, j, px, py, pz, ncart
+  double precision :: Ix, Iy, Iz, alpha
+  double precision :: Ixyz
+
+  ncart = (l+1)*(l+2)/2
+  alpha = 2.d0*a     ! because exp(-a r^2)^2 = exp(-2a r^2)
+
+  S = 0.0d0
+  do i = 1, ncart
+    do j = 1, ncart
+      px = index_list(i,1) + index_list(j,1)
+      py = index_list(i,2) + index_list(j,2)
+      pz = index_list(i,3) + index_list(j,3)
+
+      if (mod(px,2) /= 0 .or. mod(py,2) /= 0 .or. mod(pz,2) /= 0) cycle
+
+      call moment_full_line(px, alpha, Ix)
+      call moment_full_line(py, alpha, Iy)
+      call moment_full_line(pz, alpha, Iz)
+
+      Ixyz = Ix*Iy*Iz
+      S = S + M_trans(i,m)*M_trans(j,m)*Ixyz
+    end do
+  end do
+end subroutine calc_S_self_sph
 
 
 subroutine write_array(arr, m, n)

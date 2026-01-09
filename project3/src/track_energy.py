@@ -79,7 +79,7 @@ def plot_energy(outpng: Path, steps, Evals, dt: float):
     times = [s * dt for s in steps]
 
     plt.figure()
-    plt.plot(times, Evals, marker="o", linestyle="-")
+    plt.plot(times, Evals, linestyle="-")
     plt.xlabel("Time (ps)")
     plt.ylabel("Total energy E (kJ/mol)")
     plt.title("MD energy drift: E(t)")

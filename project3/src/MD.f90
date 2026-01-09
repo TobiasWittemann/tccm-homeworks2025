@@ -75,7 +75,7 @@ double precision, intent(out) :: epsilon, sigma
 double precision, intent(out), dimension(NAtoms,3) :: coord, coord_ext
 double precision, intent(out), dimension(NAtoms) :: mass
 ! Open and read input file
-open(1, file='inp.txt', status="old", action='read')
+open(1, file, status="old", action='read')
 read(1,*) NAtomsDummy         ! read number of atoms
 read(1,*) epsilon_ext, sigma_ext ! read epsilon (kJ/mol) and sigma (A) from comment line
 ! Convert epsilon and sigma from externally used units into the units used in the program
@@ -241,10 +241,10 @@ subroutine get_user_input(file_name, nsteps, dt)
 
     ! get input filename
     do
-        write(*, '(A)') '>> Input filename (default "inp.txt"): '
+        write(*, '(A)') '>> Input filename (default "tests/inp.txt"): '
         read(*, '(A)') input_str
         if (len_trim(input_str) == 0) then
-            file_name = 'inp.txt'
+            file_name = 'tests/inp.txt'
         else
             file_name = trim(input_str)
         end if

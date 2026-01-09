@@ -77,6 +77,19 @@ end do
 
 end program main
 
+!Calculation of 1D self-overlap function from Eq. (15)
+double precision function S1D_self(i,a) result(S)
+  implicit none
+  integer, intent(in) :: i
+  double precision, intent(in) :: a
+  double precision, parameter :: pi = acos(-1.d0)
+  double precision :: double_factorial
+
+  ! Eq. (15): <G_i|G_i> = (2i-1)!! / ( (4a)^i ) * sqrt(pi/(2a))
+  S = double_factorial(2.d0*real(i,8) - 1.d0) / ((4.d0*a)**i) * sqrt(pi/(2.d0*a))
+end function S1D_self
+
+
 
 subroutine write_array(arr, m, n)
 integer, intent(in) :: m, n

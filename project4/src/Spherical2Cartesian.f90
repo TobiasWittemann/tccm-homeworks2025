@@ -4,12 +4,18 @@ integer :: l, m, x_exp, y_exp, z_exp, i, j
 integer, dimension(:,:), allocatable :: index_list
 double precision, dimension(:,:), allocatable :: M_trans
 double precision :: a, S_self, S_self_cart
+double precision, allocatable :: S_shell(:)
+integer :: ncart
 integer,dimension(3) :: exponents
 character(len=8) :: x_exp_char, y_exp_char, z_exp_char
 
 ! Get angular momentum input from user
 write(*,*) "Please select angular momentum l"
 read(*,*) l
+
+! Get Gaussian exponent from user
+write(*,*) "Enter Gaussian exponent a (>0), examle: a=0.5:"
+read(*,*) a
 
 
 ! Calculate transformation matrix
@@ -48,6 +54,13 @@ write(*,*)
 end do
 
 
+! Test value can be a = 0.5d0 
+allocate(S_shell((l+1)*(l+2)/2))
+call calc_shell_self_overlap_cart(l, a, S_shell, index_list)
+write(*,'(/,A,F10.4)') "Cartesian self-overlaps for a = ", a
+do i = 1, (l+1)*(l+2)/2
+  write(*,'(A,3I3,A,ES16.8)') " (i,j,k)=(", index_list(i,1), index_list(i,2), index_list(i,3), ")  S = ", S_shell(i)
+end do
 
 
 !call get_index_list(l,index_list)

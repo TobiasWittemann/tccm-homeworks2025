@@ -54,14 +54,16 @@ end do
 close(unit_idx)
 
 ! Prepare matrices basis_centers, primitive_exponents, cartesian_exponents, contraction_coeffs which store the basis set data
-allocate(basis_centers(Nbasis,3), primitive_exponents(Nbasis, maxcont), cartesian_exponents(Nbasis,3), contraction_coeffs(Nbasis,maxcont))  
+allocate(basis_centers(Nbasis,3), primitive_exponents(Nbasis, maxcont), &
+ cartesian_exponents(Nbasis,3), contraction_coeffs(Nbasis,maxcont))  
 basis_centers = 0.0d0
 primitive_exponents = 0.0d0
 cartesian_exponents = 0.0d0
 contraction_coeffs = 0.0d0
 offset = 0  ! Initialize the index before calling
 do i = 1, NAtoms
-  call GenerateMDMatrices(MolecularBasis(i), coord(i,:), Nbasis, maxcont, offset,basis_centers, primitive_exponents, cartesian_exponents, contraction_coeffs)
+  call GenerateMDMatrices(MolecularBasis(i), coord(i,:), Nbasis, maxcont, & 
+  offset,basis_centers, primitive_exponents, cartesian_exponents, contraction_coeffs)
 end do
 
 ! Calculate overlap matrix
